@@ -1,6 +1,8 @@
 // server.js - Main entry point
 const express = require('express');
-const mongoose = require('mongoose');
+const cors = require('cors');
+const morgan = require('morgan');
+const { testConnection } = require('./config/db');
 const authRoutes = require('./routes/auth');
 const patientRoutes = require('./routes/patient');
 const doctorRoutes = require('./routes/doctor');
@@ -8,19 +10,35 @@ const errorHandler = require('./middleware/errorHandler');
 require('dotenv').config();
 
 const app = express();
-app.use(express.json());
 
-// Enable CORS for all routes
-app.use((req, res, next) => {
-  res.header('Access-Control-Allow-Origin', '*');
-  res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization');
-  res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
-  next();
-});
+// Middleware
+app.use(cors({
+  origin: process.env.FRONTEND_URL || '*',
+  credentials: true
+}));
+app.use(express.json());
+app.use(morgan('dev'));
 
 // Simple health check route
-app.get('/api/health', (req, res) => {
-  res.status(200).json({ status: 'ok', message: 'Server is running' });
+app.get('/api/health', async (req, res) => {
+  try {
+    // Test database connection
+    await testConnection();
+    
+    res.status(200).json({ 
+      status: 'ok', 
+      message: 'Server and database are running',
+      environment: process.env.NODE_ENV || 'development',
+      timestamp: new Date().toISOString(),
+      database: 'PostgreSQL (Neon)'
+    });
+  } catch (error) {
+    res.status(503).json({
+      status: 'error',
+      message: 'Database connection failed',
+      error: error.message
+    });
+  }
 });
 
 // API Routes
@@ -28,25 +46,30 @@ app.use('/api/auth', authRoutes);
 app.use('/api/patient', patientRoutes);
 app.use('/api/doctor', doctorRoutes);
 
+// 404 handler
+app.use((req, res) => {
+  res.status(404).json({ 
+    success: false,
+    message: 'Endpoint not found',
+    path: req.path
+  });
+});
+
 // Error handler
 app.use(errorHandler);
 
-// Only start the server if this file is run directly (not when imported as a module)
-if (require.main === module) {
+// Start the server when running locally
+if (process.env.NODE_ENV !== 'production') {
   const PORT = process.env.PORT || 5000;
   
-  mongoose.connect(process.env.MONGO_URI, { 
-    useNewUrlParser: true, 
-    useUnifiedTopology: true 
-  })
-  .then(() => {
+  // Test database connection before starting the server
+  testConnection().then(() => {
     app.listen(PORT, () => {
-      console.log(`Server running on port ${PORT}`);
-      console.log(`MongoDB connected: ${mongoose.connection.host}`);
+      console.log(`Server running in ${process.env.NODE_ENV || 'development'} mode on port ${PORT}`);
+      console.log(`PostgreSQL connected via ${process.env.NEON_DATABASE ? 'Neon' : 'local'}`);
     });
-  })
-  .catch(err => {
-    console.error('Database connection failed', err);
+  }).catch(err => {
+    console.error('Failed to connect to the database:', err);
     process.exit(1);
   });
 }

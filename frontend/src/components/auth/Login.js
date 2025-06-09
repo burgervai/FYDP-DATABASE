@@ -57,18 +57,22 @@ const Login = () => {
       newErrors.doctorId = 'Doctor ID is required';
     }
     
-    setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
+    return newErrors;
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!validateForm()) return;
+    const formErrors = validateForm();
     
-    setIsLoading(true);
-    setApiError('');
-    
+    if (Object.keys(formErrors).length > 0) {
+      setErrors(formErrors);
+      return;
+    }
+
     try {
+      setIsLoading(true);
+      setApiError('');
+      
       if (isLogin) {
         const response = await authAPI.login({
           email: formData.email,
@@ -79,7 +83,8 @@ const Login = () => {
         login(response.data);
         navigate(`/${activeRole}/dashboard`);
       } else {
-        const response = await authAPI.register({
+        // Register the user
+        await authAPI.register({
           ...formData,
           role: activeRole
         });
@@ -88,8 +93,7 @@ const Login = () => {
         setApiError('Registration successful! Please log in.');
       }
     } catch (error) {
-      setApiError(error.response?.data?.message || 
-        (isLogin ? 'Login failed. Please try again.' : 'Registration failed. Please try again.'));
+      setApiError(error.response?.data?.message || 'An error occurred. Please try again.');
     } finally {
       setIsLoading(false);
     }
@@ -185,32 +189,32 @@ const Login = () => {
           </button>
         </form>
         
-        <div className="register-link">
-          {isLogin ? (
-            <>
-              Don't have an account?{' '}
-              <a href="#" onClick={(e) => {
-                e.preventDefault();
-                setIsLogin(false);
+        <div className="form-footer">
+          <button 
+            type="button" 
+            className="forgot-password"
+            onClick={() => {
+              // TODO: Implement forgot password functionality
+              console.log('Forgot password clicked');
+            }}
+          >
+            Forgot password?
+          </button>
+          
+          <div className="register-prompt">
+            {isLogin ? "Don't have an account? " : 'Already have an account? '}
+            <button 
+              type="button"
+              className="toggle-form-btn"
+              onClick={() => {
+                setIsLogin(!isLogin);
                 setErrors({});
                 setApiError('');
-              }}>
-                Register as {activeRole}
-              </a>
-            </>
-          ) : (
-            <>
-              Already have an account?{' '}
-              <a href="#" onClick={(e) => {
-                e.preventDefault();
-                setIsLogin(true);
-                setErrors({});
-                setApiError('');
-              }}>
-                Login
-              </a>
-            </>
-          )}
+              }}
+            >
+              {isLogin ? 'Register' : 'Login'}
+            </button>
+          </div>
         </div>
       </div>
     </div>

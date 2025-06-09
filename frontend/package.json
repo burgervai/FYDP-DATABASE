@@ -1,7 +1,8 @@
 {
-  "name": "frontend",
-  "version": "0.1.0",
+  "name": "fydp-frontend",
+  "version": "1.0.0",
   "private": true,
+  "description": "FYDP Frontend Application",
   "dependencies": {
     "@emotion/react": "^11.11.3",
     "@emotion/styled": "^11.11.0",
@@ -18,9 +19,13 @@
   },
   "scripts": {
     "start": "react-scripts start",
-    "build": "react-scripts build",
+    "build": "GENERATE_SOURCEMAP=false react-scripts build",
+    "build:dev": "react-scripts build",
     "test": "react-scripts test",
-    "eject": "react-scripts eject"
+    "eject": "react-scripts eject",
+    "lint": "eslint src --ext .js,.jsx",
+    "format": "prettier --write \"src/**/*.{js,jsx,json,css}\"",
+    "analyze": "source-map-explorer 'build/static/js/*.js'"
   },
   "eslintConfig": {
     "extends": [
@@ -43,5 +48,11 @@
   "engines": {
     "node": ">=14.0.0",
     "npm": ">=6.0.0"
-  }
+  },
+  "babel": {
+    "presets": [
+      "react-app"
+    ]
+  },
+  "homepage": "/"
 }
