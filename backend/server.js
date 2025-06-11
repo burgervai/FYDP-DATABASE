@@ -1,23 +1,37 @@
 // server.js - Main entry point
 const express = require('express');
 const cors = require('cors');
+const helmet = require('helmet');
 const morgan = require('morgan');
+const { verifyRecaptcha } = require('google-recaptcha-v3');
 const { testConnection } = require('./config/db');
 const authRoutes = require('./routes/auth');
 const patientRoutes = require('./routes/patient');
 const doctorRoutes = require('./routes/doctor');
 const errorHandler = require('./middleware/errorHandler');
+const { authLimiter, apiLimiter } = require('./middleware/rateLimit');
+const auditRequest = require('./middleware/auditMiddleware');
 require('dotenv').config();
 
 const app = express();
 
-// Middleware
+// Security middleware
+app.use(helmet());
 app.use(cors({
   origin: process.env.FRONTEND_URL || '*',
   credentials: true
 }));
 app.use(express.json());
 app.use(morgan('dev'));
+
+// Apply rate limiting to all API routes
+app.use('/api', apiLimiter);
+
+// Apply stricter rate limiting to auth routes
+app.use('/api/auth', authLimiter);
+
+// Log all requests for audit
+app.use(auditRequest);
 
 // Simple health check route
 app.get('/api/health', async (req, res) => {

@@ -1,12 +1,32 @@
-import React from 'react';
+import React, { useContext, useEffect, useState } from 'react';
+import { AuthContext } from '../context/AuthContext';
+import { appointmentAPI } from '../services/api';
 import { useNavigate } from 'react-router-dom';
-import { useAuth } from '../context/AuthContext';
 import './Dashboard.css';
 
-const Dashboard = ({ role }) => {
-  const { user, logout } = useAuth();
+const Dashboard = () => {
+  const { user } = useContext(AuthContext);
+  const [appointments, setAppointments] = useState([]);
+  const [patients, setPatients] = useState([]);
   const navigate = useNavigate();
 
+  useEffect(() => {
+    if (!user) return;
+    if (user.role === 'patient') {
+      appointmentAPI.getMyAppointments().then(res => setAppointments(res.data)).catch(() => setAppointments([]));
+    } else if (user.role === 'doctor') {
+      appointmentAPI.getDoctorAppointments().then(res => setAppointments(res.data)).catch(() => setAppointments([]));
+      // Fetch patients for doctor
+      fetch('/api/auth/patients', {
+        headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
+      })
+        .then(res => res.json())
+        .then(data => setPatients(data))
+        .catch(() => setPatients([]));
+    }
+  }, [user]);
+
+  if (!user) return null;
   const handleLogout = async () => {
     await logout();
     navigate('/login');

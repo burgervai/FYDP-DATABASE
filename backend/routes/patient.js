@@ -2,11 +2,8 @@
 const express = require('express');
 const router = express.Router();
 const patientController = require('../controllers/patientController');
-const auth = require('../middleware/auth');
-const role = require('../middleware/role');
+const { authenticate, requireRole } = require('../middleware/auth');
 
-router.use(auth, role('patient'));
-router.post('/info', patientController.uploadInfo);
-router.get('/info', patientController.getOwnInfo);
+// Patient can only access their own infoouter.get('/me', authenticate, requireRole('patient'), patientController.getOwnInfo);
 
 module.exports = router;

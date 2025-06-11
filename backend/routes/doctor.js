@@ -2,10 +2,9 @@
 const express = require('express');
 const router = express.Router();
 const doctorController = require('../controllers/doctorController');
-const auth = require('../middleware/auth');
-const role = require('../middleware/role');
+const { authenticate, requireRole } = require('../middleware/auth');
 
-router.use(auth, role('doctor'));
-router.get('/patients', doctorController.getAllPatients);
+// Doctor can view all patients
+router.get('/patients', authenticate, requireRole('doctor'), doctorController.getAllPatients);
 
 module.exports = router;

@@ -72,16 +72,15 @@ api.interceptors.response.use(
 
 // Auth API
 export const authAPI = {
-  login: (credentials) => api.post(API_ROUTES.AUTH.LOGIN, credentials),
-  register: (userData) => api.post(API_ROUTES.AUTH.REGISTER, userData),
-  logout: () => {
-    const refreshToken = localStorage.getItem('refreshToken');
-    localStorage.removeItem('token');
-    localStorage.removeItem('refreshToken');
-    return api.post(API_ROUTES.AUTH.LOGOUT, { refreshToken });
-  },
-  getProfile: () => api.get(API_ROUTES.AUTH.PROFILE),
-  refreshToken: (refreshToken) => api.post(API_ROUTES.AUTH.REFRESH, { refreshToken }),
+  // Patient endpoints
+  loginPatient: (credentials) => api.post('/auth/login/patient', credentials),
+  registerPatient: (data) => api.post('/auth/register/patient', data),
+  getPatientProfile: (token) => api.get('/patient/me', { headers: { Authorization: `Bearer ${token}` } }),
+
+  // Doctor endpoints
+  loginDoctor: (credentials) => api.post('/auth/login/doctor', credentials),
+  registerDoctor: (data) => api.post('/auth/register/doctor', data),
+  getDoctorPatients: (token) => api.get('/doctor/patients', { headers: { Authorization: `Bearer ${token}` } }),
 };
 
 // Users API

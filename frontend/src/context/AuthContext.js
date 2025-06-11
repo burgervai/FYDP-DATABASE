@@ -1,10 +1,12 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect } from 'react';
 import { authAPI } from '../services/api';
 
 const AuthContext = createContext(null);
 
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
+  const [role, setRole] = useState(null); // 'patient' or 'doctor'
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -12,95 +14,99 @@ export const AuthProvider = ({ children }) => {
     const checkAuth = async () => {
       try {
         const token = localStorage.getItem('token');
-        if (token) {
-          const response = await authAPI.getProfile();
-          setUser(response.data.data);
+        const storedRole = localStorage.getItem('role');
+        if (token && storedRole) {
+          setRole(storedRole);
+          const profile = await getProfile(storedRole, token);
+          setUser(profile);
         }
       } catch (error) {
         console.error('Auth check failed:', error);
-        // Clear invalid tokens
         localStorage.removeItem('token');
-        localStorage.removeItem('refreshToken');
+        localStorage.removeItem('role');
       } finally {
         setLoading(false);
       }
     };
-
     checkAuth();
   }, []);
 
-  const login = async (credentials) => {
+  // Fetch profile based on role
+  const getProfile = async (role, token) => {
     try {
-      const response = await authAPI.login(credentials);
-      const { user, token, refreshToken } = response.data.data;
-      
-      // Store tokens
-      localStorage.setItem('token', token);
-      if (refreshToken) {
-        localStorage.setItem('refreshToken', refreshToken);
+      if (!role) return null;
+      if (role === 'patient') {
+        const res = await authAPI.getPatientProfile(token);
+        return res.data;
+      } else if (role === 'doctor') {
+        const res = await authAPI.getDoctorPatients(token);
+        return res.data;
       }
-      
+      return null;
+    } catch (error) {
+      console.error('Get profile error:', error);
+      return null;
+    }
+  };
+
+  // Role-based login
+  const login = async (credentials, role) => {
+    try {
+      let response;
+      if (role === 'patient') {
+        response = await authAPI.loginPatient(credentials);
+      } else {
+        response = await authAPI.loginDoctor(credentials);
+      }
+      const { token, user } = response.data;
+      localStorage.setItem('token', token);
+      localStorage.setItem('role', role);
       setUser(user);
+      setRole(role);
       return { success: true };
     } catch (error) {
-      console.error('Login failed:', error);
-      return { 
-        success: false, 
-        message: error.response?.data?.message || 'Login failed' 
+      return {
+        success: false,
+        message: error.response?.data?.message || 'Login failed',
       };
     }
   };
 
-  const register = async (userData) => {
+  // Role-based registration
+  const register = async (userData, role) => {
     try {
-      const response = await authAPI.register(userData);
-      const { user, token, refreshToken } = response.data.data;
-      
-      // Store tokens
-      localStorage.setItem('token', token);
-      if (refreshToken) {
-        localStorage.setItem('refreshToken', refreshToken);
+      let response;
+      if (role === 'patient') {
+        response = await authAPI.registerPatient(userData);
+      } else {
+        response = await authAPI.registerDoctor(userData);
       }
-      
-      setUser(user);
+      // Registration does not log in automatically, so no token
       return { success: true };
     } catch (error) {
-      console.error('Registration failed:', error);
-      return { 
-        success: false, 
-        message: error.response?.data?.message || 'Registration failed' 
+      return {
+        success: false,
+        message: error.response?.data?.message || 'Registration failed',
       };
     }
   };
 
-  const logout = async () => {
-    try {
-      await authAPI.logout();
-    } catch (error) {
-      console.error('Logout failed:', error);
-    } finally {
-      // Clear tokens and user data
-      localStorage.removeItem('token');
-      localStorage.removeItem('refreshToken');
-      setUser(null);
-    }
-  };
-
-  const updateUser = (userData) => {
-    setUser(prevUser => ({
-      ...prevUser,
-      ...userData
-    }));
+  const logout = () => {
+    localStorage.removeItem('token');
+    localStorage.removeItem('role');
+    setUser(null);
+    setRole(null);
   };
 
   const value = {
     user,
+    role,
     isAuthenticated: !!user,
     loading,
     login,
     register,
     logout,
-    updateUser,
+    getProfile,
   };
 
   return (
@@ -118,5 +124,4 @@ export const useAuth = () => {
   return context;
 };
 
-// Export the context as a named export
 export { AuthContext };

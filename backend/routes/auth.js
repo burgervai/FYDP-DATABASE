@@ -1,9 +1,16 @@
 // auth.js - Handles registration and login for both roles
 const express = require('express');
 const router = express.Router();
-const authController = require('../controllers/authController');
+const { registerPatient, registerDoctor, loginPatient, loginDoctor } = require('../controllers/authController');
+const verifyCaptcha = require('../middleware/recaptcha');
+const { logAction } = require('../utils/auditLogger');
 
-router.post('/register', authController.register);
-router.post('/login', authController.login);
+// Patient routes with CAPTCHA
+router.post('/register/patient', verifyCaptcha, registerPatient);
+router.post('/login/patient', verifyCaptcha, loginPatient);
+
+// Doctor routes with CAPTCHA
+router.post('/register/doctor', verifyCaptcha, registerDoctor);
+router.post('/login/doctor', verifyCaptcha, loginDoctor);
 
 module.exports = router;

@@ -1,13 +1,44 @@
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './context/AuthContext';
-import Login from './components/auth/Login';
+import Landing from './components/Landing';
+import Unauthorized from './components/Unauthorized';
+import PatientLogin from './components/auth/PatientLogin';
+import DoctorLogin from './components/auth/DoctorLogin';
+import PatientRegister from './components/auth/PatientRegister';
+import DoctorRegister from './components/auth/DoctorRegister';
+import PatientDashboard from './components/dashboard/PatientDashboard';
+import DoctorDashboard from './components/dashboard/DoctorDashboard';
+import Header from './components/Header';
 import Dashboard from './components/Dashboard';
+import Appointments from './components/Appointments';
+import Patients from './components/Patients';
+import Login from './components/Login';
+import Register from './components/Register';
 import './App.css';
 
 // Protected Route Component
 const ProtectedRoute = ({ children, requiredRole }) => {
-  const { user, loading } = useAuth();
+  const { user, role, loading } = useAuth();
+
+  if (loading) {
+    return <div className="loading">Loading...</div>;
+  }
+
+  if (!user) {
+    return <Navigate to="/" replace />;
+  }
+
+  if (requiredRole && role !== requiredRole) {
+    return <Navigate to="/unauthorized" replace />;
+  }
+
+  return children;
+};
+
+// Private Route Component
+const PrivateRoute = ({ children, roles }) => {
+  const { user, role, loading } = useAuth();
 
   if (loading) {
     return <div className="loading">Loading...</div>;
@@ -17,7 +48,7 @@ const ProtectedRoute = ({ children, requiredRole }) => {
     return <Navigate to="/login" replace />;
   }
 
-  if (requiredRole && user.role !== requiredRole) {
+  if (roles && !roles.includes(role)) {
     return <Navigate to="/unauthorized" replace />;
   }
 
@@ -29,42 +60,64 @@ function App() {
   return (
     <AuthProvider>
       <Router>
+        <Header />
         <div className="app">
           <Routes>
-            {/* Public Routes */}
+            {/* Landing Page */}
+            <Route path="/" element={<Landing />} />
+
+            {/* Auth Routes */}
+            <Route path="/login/patient" element={<PatientLogin />} />
+            <Route path="/login/doctor" element={<DoctorLogin />} />
+            <Route path="/register/patient" element={<PatientRegister />} />
+            <Route path="/register/doctor" element={<DoctorRegister />} />
             <Route path="/login" element={<Login />} />
-            
-            {/* Protected Routes */}
+            <Route path="/register" element={<Register />} />
+
+            {/* Dashboards */}
+            <Route
+              path="/dashboard/patient"
+              element={
+                <ProtectedRoute requiredRole="patient">
+                  <PatientDashboard />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/dashboard/doctor"
+              element={
+                <ProtectedRoute requiredRole="doctor">
+                  <DoctorDashboard />
+                </ProtectedRoute>
+              }
+            />
             <Route
               path="/dashboard"
               element={
-                <ProtectedRoute>
+                <PrivateRoute>
                   <Dashboard />
-                </ProtectedRoute>
+                </PrivateRoute>
               }
             />
-            
             <Route
-              path="/doctor/*"
+              path="/appointments"
               element={
-                <ProtectedRoute requiredRole="doctor">
-                  <Dashboard role="doctor" />
-                </ProtectedRoute>
+                <PrivateRoute>
+                  <Appointments />
+                </PrivateRoute>
               }
             />
-            
             <Route
-              path="/patient/*"
+              path="/patients"
               element={
-                <ProtectedRoute requiredRole="patient">
-                  <Dashboard role="patient" />
-                </ProtectedRoute>
+                <PrivateRoute roles={['doctor']}>
+                  <Patients />
+                </PrivateRoute>
               }
             />
-            
-            {/* Default Route */}
-            <Route path="/" element={<Navigate to="/login" replace />} />
-            
+
+            {/* Unauthorized Route */}
+            <Route path="/unauthorized" element={<Unauthorized />} />
             {/* 404 Route */}
             <Route path="*" element={<div>404 - Page Not Found</div>} />
           </Routes>
