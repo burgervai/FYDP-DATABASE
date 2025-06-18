@@ -1,17 +1,59 @@
-const { Pool } = require('pg');
+const { Sequelize } = require('sequelize');
+require('dotenv').config();
 
-// Create a new Pool instance with connection settings
-const pool = new Pool({
-  connectionString: process.env.NEON_DATABASE || process.env.DATABASE_URL || 'postgresql://postgres:postgres@localhost:5432/fydp',
-  ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false
-});
+console.log('Using DATABASE_URL:', process.env.DATABASE_URL);
+// Prefer DATABASE_URL for Neon or cloud connections
+let sequelize;
+if (process.env.DATABASE_URL) {
+  sequelize = new Sequelize(process.env.DATABASE_URL, {
+    dialect: 'postgres',
+    protocol: 'postgres',
+    logging: process.env.NODE_ENV === 'development' ? console.log : false,
+    dialectOptions: {
+      ssl: process.env.DATABASE_URL.includes('sslmode=require') || process.env.DB_SSL === 'true'
+        ? { require: true, rejectUnauthorized: false }
+        : false,
+    },
+    pool: {
+      max: 5,
+      min: 0,
+      acquire: 30000,
+      idle: 10000
+    },
+    define: {
+      timestamps: true,
+      underscored: true
+    }
+  });
+} else {
+  sequelize = new Sequelize(
+    process.env.DB_NAME || 'healthcare_central',
+    process.env.DB_USER || 'postgres',
+    process.env.DB_PASSWORD || 'postgres',
+    {
+      host: process.env.DB_HOST || 'localhost',
+      port: process.env.DB_PORT || 5432,
+      dialect: 'postgres',
+      logging: process.env.NODE_ENV === 'development' ? console.log : false,
+      pool: {
+        max: 5,
+        min: 0,
+        acquire: 30000,
+        idle: 10000
+      },
+      define: {
+        timestamps: true,
+        underscored: true
+      }
+    }
+  );
+}
 
 // Test the database connection
 const testConnection = async () => {
   try {
-    const client = await pool.connect();
+    await sequelize.authenticate();
     console.log('✅ PostgreSQL connected successfully');
-    client.release();
     return true;
   } catch (error) {
     console.error('❌ Error connecting to PostgreSQL:', error.message);
@@ -20,7 +62,7 @@ const testConnection = async () => {
 };
 
 module.exports = {
-  query: (text, params) => pool.query(text, params),
-  getClient: () => pool.connect(),
+  sequelize,
+  Sequelize,
   testConnection
 };
