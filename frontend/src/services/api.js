@@ -85,8 +85,19 @@ export const authAPI = {
 
 // Users API
 export const usersAPI = {
-  getCurrentUser: () => api.get(API_ROUTES.USERS.BASE + '/me'),
-  updateProfile: (userData) => api.put(API_ROUTES.USERS.BASE + '/me', userData),
+  getCurrentUser: () => api.get('/users/me'),
+  updateProfile: (userData) => api.put('/users/profile', userData),
+};
+
+// Appointments API
+export const appointmentAPI = {
+  getAppointments: () => api.get('/appointments'),
+  getAppointment: (id) => api.get(`/appointments/${id}`),
+  createAppointment: (appointmentData) => api.post('/appointments', appointmentData),
+  updateAppointment: (id, appointmentData) => api.put(`/appointments/${id}`, appointmentData),
+  deleteAppointment: (id) => api.delete(`/appointments/${id}`),
+  getDoctorAppointments: () => api.get('/appointments/doctor/me'),
+  getPatientAppointments: () => api.get('/appointments/patient/me'),
 };
 
 export default api;

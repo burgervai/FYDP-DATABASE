@@ -1,4 +1,4 @@
-# FYDP - Hospital Patient-Doctor Database System
+the problem is i can't# FYDP - Hospital Patient-Doctor Database System
 
 A robust full-stack hospital management system for securely managing patient and doctor information, built with a React frontend and Node.js/Express backend. The system supports role-based access, allowing patients to manage their own data and doctors to view all patient records.
 

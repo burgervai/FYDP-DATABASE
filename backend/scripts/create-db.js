@@ -2,16 +2,20 @@ const { Client } = require('pg');
 require('dotenv').config();
 
 async function createDatabase() {
-  // Connect to the default 'postgres' database to create a new database
-  const client = new Client({
-    user: process.env.DB_USER || 'postgres',
-    host: process.env.DB_HOST || 'localhost',
-    database: 'postgres', // Connect to default database
-    password: process.env.DB_PASSWORD || 'postgres',
-    port: process.env.DB_PORT || 5432,
-  });
+  // Parse the DATABASE_URL to get connection details
+  const dbUrl = new URL(process.env.DATABASE_URL);
+  const dbName = dbUrl.pathname.replace('/', '');
+  
+  // Create a connection string to the default 'postgres' database
+  const rootDbUrl = new URL(process.env.DATABASE_URL);
+  rootDbUrl.pathname = '/postgres'; // Connect to default database
 
-  const dbName = process.env.DB_NAME || 'healthcare_central';
+  const client = new Client({
+    connectionString: rootDbUrl.toString(),
+    ssl: {
+      rejectUnauthorized: false // Required for Neon
+    }
+  });
 
   try {
     await client.connect();
@@ -19,7 +23,8 @@ async function createDatabase() {
     
     // Check if database exists
     const res = await client.query(
-      `SELECT 1 FROM pg_database WHERE datname = '${dbName}'`
+      `SELECT 1 FROM pg_database WHERE datname = $1`,
+      [dbName]
     );
     
     if (res.rows.length === 0) {
@@ -37,4 +42,3 @@ async function createDatabase() {
   }
 }
 
-createDatabase();
