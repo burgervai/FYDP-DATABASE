@@ -23,4 +23,16 @@ router.get('/doctor',
   appointmentController.getDoctorAppointments
 );
 
+// Get all appointments (admin/doctor)
+router.get('/', authenticate, authorize(['admin', 'doctor']), appointmentController.getAllAppointments);
+
+// Get appointment by ID (admin/doctor/patient if owned)
+router.get('/:id', authenticate, appointmentController.getAppointmentById);
+
+// Update appointment (admin/doctor/patient if owned)
+router.put('/:id', authenticate, appointmentController.updateAppointment);
+
+// Delete appointment (admin/doctor/patient if owned)
+router.delete('/:id', authenticate, appointmentController.deleteAppointment);
+
 module.exports = router;

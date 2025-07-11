@@ -4,11 +4,8 @@ const cors = require('cors');
 const helmet = require('helmet');
 const morgan = require('morgan');
 const path = require('path');
-// REMOVED: const { verifyRecaptcha } = require('google-recaptcha-v3');
 const { sequelize, testConnection } = require('./config/db');
-const authRoutes = require('./routes/auth');
-const patientRoutes = require('./routes/patient');
-const doctorRoutes = require('./routes/doctor');
+const apiRoutes = require('./routes'); // This will automatically load index.js
 const errorHandler = require('./middleware/errorHandler');
 const { authLimiter, apiLimiter } = require('./middleware/rateLimit');
 const auditRequest = require('./middleware/auditMiddleware');
@@ -19,12 +16,38 @@ const app = express();
 // Import models to register them with Sequelize
 require('./models/User');
 require('./models/PatientInfo');
+require('./models/Hospital'); // Add other models as needed
 
 // Security middleware
 app.use(helmet());
+// CORS configuration
+const allowedOrigins = [
+  'http://localhost:3000',  // Local development
+  'http://localhost:3001',  // Alternate local port
+  'https://fydp-database.vercel.app',  // Your Vercel app URL
+  'https://*.vercel.app'  // Any Vercel preview URLs
+];
+
+// Add any custom domains from environment variable
+if (process.env.ALLOWED_ORIGINS) {
+  allowedOrigins.push(...process.env.ALLOWED_ORIGINS.split(','));
+}
+
 app.use(cors({
-  origin: process.env.FRONTEND_URL || '*',
-  credentials: true
+  origin: function (origin, callback) {
+    // Allow requests with no origin (like mobile apps or curl requests)
+    if (!origin) return callback(null, true);
+    
+    if (allowedOrigins.indexOf(origin) === -1) {
+      const msg = `The CORS policy for this site does not allow access from the specified origin: ${origin}`;
+      console.warn(msg);
+      return callback(new Error(msg), false);
+    }
+    return callback(null, true);
+  },
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With']
 }));
 app.use(express.json());
 app.use(morgan('dev'));
@@ -61,9 +84,7 @@ app.get('/api/health', async (req, res) => {
 });
 
 // API Routes
-app.use('/api/auth', authRoutes);
-app.use('/api/patient', patientRoutes);
-app.use('/api/doctor', doctorRoutes);
+app.use('/api', apiRoutes); // All routes are now mounted under /api in routes/index.js
 
 // 404 handler
 app.use((req, res) => {

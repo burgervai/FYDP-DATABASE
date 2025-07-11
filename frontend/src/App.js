@@ -1,129 +1,198 @@
-import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
-import { AuthProvider, useAuth } from './context/AuthContext';
-import Landing from './components/Landing';
-import Unauthorized from './components/Unauthorized';
-import PatientLogin from './components/auth/PatientLogin';
-import DoctorLogin from './components/auth/DoctorLogin';
-import PatientRegister from './components/auth/PatientRegister';
-import DoctorRegister from './components/auth/DoctorRegister';
-import PatientDashboard from './components/dashboard/PatientDashboard';
-import DoctorDashboard from './components/dashboard/DoctorDashboard';
-import Header from './components/Header';
-import Dashboard from './components/Dashboard';
-import Appointments from './components/Appointments';
-import Patients from './components/Patients';
-import Login from './components/Login';
-import Register from './components/Register';
-import './App.css';
+import { CssBaseline, ThemeProvider, createTheme, Box } from '@mui/material';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { AuthProvider, useAuth } from './contexts/AuthContext';
 
-// Protected Route Component
-const ProtectedRoute = ({ children, requiredRole }) => {
-  const { user, role, loading } = useAuth();
+// Import components
+import Navbar from './components/common/Navbar';
+import RoleBasedRoute from './components/common/RoleBasedRoute';
+import PublicRoute from './components/common/PublicRoute';
+
+// Import pages
+import LoginPage from './pages/auth/LoginPage';
+import RegisterPage from './pages/auth/RegisterPage';
+import Dashboard from './pages/Dashboard';
+
+// Import styles
+import './styles/main.css';
+
+// Create a client
+const queryClient = new QueryClient();
+
+// Custom wrapper for protected routes with role-based access
+const RoleBasedRoute = ({ children, requiredRole }) => {
+  const { user, isAuthenticated, loading } = useAuth();
 
   if (loading) {
-    return <div className="loading">Loading...</div>;
+    return <div>Loading...</div>;
   }
 
-  if (!user) {
-    return <Navigate to="/" replace />;
+  if (!isAuthenticated) {
+    return <Navigate to="/login" state={{ from: window.location.pathname }} replace />;
   }
 
-  if (requiredRole && role !== requiredRole) {
+  if (requiredRole && user?.role !== requiredRole) {
     return <Navigate to="/unauthorized" replace />;
   }
 
   return children;
 };
 
-// Private Route Component
-const PrivateRoute = ({ children, roles }) => {
-  const { user, role, loading } = useAuth();
-
-  if (loading) {
-    return <div className="loading">Loading...</div>;
+// Public route wrapper
+const PublicRoute = ({ children }) => {
+  const { isAuthenticated } = useAuth();
+  const location = window.location;
+  
+  if (isAuthenticated) {
+    return <Navigate to="/dashboard" state={{ from: location }} replace />;
   }
-
-  if (!user) {
-    return <Navigate to="/login" replace />;
-  }
-
-  if (roles && !roles.includes(role)) {
-    return <Navigate to="/unauthorized" replace />;
-  }
-
+  
   return children;
 };
 
-// Main App Component
-function App() {
+const theme = createTheme({
+  palette: {
+    primary: {
+      main: '#1976d2', // Blue
+    },
+    secondary: {
+      main: '#dc004e', // Pink
+    },
+    background: {
+      default: '#f5f5f5', // Light gray
+      paper: '#ffffff',
+    },
+  },
+  typography: {
+    fontFamily: '"Roboto", "Helvetica", "Arial", sans-serif',
+    button: {
+      textTransform: 'none',
+    },
+  },
+  components: {
+    MuiButton: {
+      styleOverrides: {
+        root: {
+          borderRadius: 8,
+          padding: '8px 16px',
+        },
+      },
+    },
+    MuiCard: {
+      styleOverrides: {
+        root: {
+          borderRadius: 12,
+          boxShadow: '0 4px 20px rgba(0, 0, 0, 0.1)',
+        },
+      },
+    },
+  },
+});
+
+// Main layout component that includes Navbar and content
+const Layout = ({ children }) => {
   return (
-    <AuthProvider>
-      <Router>
-        <Header />
-        <div className="app">
-          <Routes>
-            {/* Landing Page */}
-            <Route path="/" element={<Landing />} />
-
-            {/* Auth Routes */}
-            <Route path="/login/patient" element={<PatientLogin />} />
-            <Route path="/login/doctor" element={<DoctorLogin />} />
-            <Route path="/register/patient" element={<PatientRegister />} />
-            <Route path="/register/doctor" element={<DoctorRegister />} />
-            <Route path="/login" element={<Login />} />
-            <Route path="/register" element={<Register />} />
-
-            {/* Dashboards */}
-            <Route
-              path="/dashboard/patient"
-              element={
-                <ProtectedRoute requiredRole="patient">
-                  <PatientDashboard />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/dashboard/doctor"
-              element={
-                <ProtectedRoute requiredRole="doctor">
-                  <DoctorDashboard />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/dashboard"
-              element={
-                <PrivateRoute>
-                  <Dashboard />
-                </PrivateRoute>
-              }
-            />
-            <Route
-              path="/appointments"
-              element={
-                <PrivateRoute>
-                  <Appointments />
-                </PrivateRoute>
-              }
-            />
-            <Route
-              path="/patients"
-              element={
-                <PrivateRoute roles={['doctor']}>
-                  <Patients />
-                </PrivateRoute>
-              }
-            />
-
-            {/* Unauthorized Route */}
-            <Route path="/unauthorized" element={<Unauthorized />} />
-            {/* 404 Route */}
-            <Route path="*" element={<div>404 - Page Not Found</div>} />
-          </Routes>
+    <Box sx={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
+      <Navbar />
+      <Box component="main" sx={{ flexGrow: 1, p: 3 }}>
+        <div className="container">
+          {children}
         </div>
-      </Router>
-    </AuthProvider>
+      </Box>
+    </Box>
+  );
+};
+
+const App = () => {
+  return (
+    <QueryClientProvider client={queryClient}>
+      <ThemeProvider theme={theme}>
+        <CssBaseline />
+        <AuthProvider>
+          <Router>
+            <Routes>
+              {/* Public Routes - No Layout */}
+              <Route path="/login" element={
+                <PublicRoute>
+                  <LoginPage />
+                </PublicRoute>
+              } />
+              
+              <Route path="/register" element={
+                <PublicRoute>
+                  <RegisterPage />
+                </PublicRoute>
+              } />
+              
+              {/* Protected Routes - With Layout */}
+              <Route path="/" element={
+                <RoleBasedRoute>
+                  <Layout>
+                    <Dashboard />
+                  </Layout>
+                </RoleBasedRoute>
+              } />
+              
+              <Route path="/dashboard" element={
+                <RoleBasedRoute>
+                  <Layout>
+                    <Dashboard />
+                  </Layout>
+                </RoleBasedRoute>
+              } />
+              
+              <Route path="/doctor/dashboard" element={
+                <RoleBasedRoute requiredRole="doctor">
+                  <Layout>
+                    <Dashboard />
+                  </Layout>
+                </RoleBasedRoute>
+              }>
+                <Route path="patients" element={<div>Patient List</div>} />
+                <Route path="profile" element={<div>Doctor Profile</div>} />
+              </Route>
+              
+              <Route path="/patient/dashboard" element={
+                <RoleBasedRoute requiredRole="patient">
+                  <Layout>
+                    <Dashboard />
+                  </Layout>
+                </RoleBasedRoute>
+              }>
+                <Route path="appointments" element={<div>My Appointments</div>} />
+                <Route path="find-doctors" element={<div>Find Doctors</div>} />
+                <Route path="profile" element={<div>My Profile</div>} />
+              </Route>
+              
+              <Route path="/admin/dashboard" element={
+                <RoleBasedRoute requiredRole="admin">
+                  <Dashboard />
+                </RoleBasedRoute>
+              } />
+              
+              {/* Error Pages */}
+              <Route path="/unauthorized" element={
+                <div>
+                  <h1>Unauthorized</h1>
+                  <p>You don't have permission to access this page.</p>
+                </div>
+              } />
+              
+              {/* Default Redirect */}
+              <Route path="/" element={<Navigate to="/login" replace />} />
+              
+              {/* 404 Page */}
+              <Route path="*" element={
+                <div>
+                  <h1>404 - Page Not Found</h1>
+                  <p>The page you're looking for doesn't exist.</p>
+                </div>
+              } />
+            </Routes>
+          </Router>
+        </AuthProvider>
+      </ThemeProvider>
+    </QueryClientProvider>
   );
 }
 

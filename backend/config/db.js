@@ -1,25 +1,16 @@
 const { Sequelize } = require('sequelize');
+const path = require('path');
 require('dotenv').config();
 
-console.log('Using DATABASE_URL:', process.env.DATABASE_URL);
-// Prefer DATABASE_URL for Neon or cloud connections
+// For development, use SQLite
+const env = process.env.NODE_ENV || 'development';
 let sequelize;
-if (process.env.DATABASE_URL) {
-  sequelize = new Sequelize(process.env.DATABASE_URL, {
-    dialect: 'postgres',
-    protocol: 'postgres',
-    logging: process.env.NODE_ENV === 'development' ? console.log : false,
-    dialectOptions: {
-      ssl: process.env.DATABASE_URL.includes('sslmode=require') || process.env.DB_SSL === 'true'
-        ? { require: true, rejectUnauthorized: false }
-        : false,
-    },
-    pool: {
-      max: 5,
-      min: 0,
-      acquire: 30000,
-      idle: 10000
-    },
+
+if (env === 'development') {
+  sequelize = new Sequelize({
+    dialect: 'sqlite',
+    storage: path.join(__dirname, '../../database.sqlite'),
+    logging: console.log,
     define: {
       timestamps: true,
       underscored: true

@@ -23,4 +23,32 @@ router.post('/release',
   bedController.releaseBed
 );
 
+// Get bed by ID (doctor/admin/nurse)
+router.get('/:id',
+  authenticate,
+  authorize(['doctor', 'admin', 'nurse']),
+  bedController.getBedById
+);
+
+// Create bed (admin only)
+router.post('/',
+  authenticate,
+  authorize(['admin']),
+  bedController.createBed
+);
+
+// Update bed (admin only)
+router.put('/:id',
+  authenticate,
+  authorize(['admin']),
+  bedController.updateBed
+);
+
+// Delete bed (admin only)
+router.delete('/:id',
+  authenticate,
+  authorize(['admin']),
+  bedController.deleteBed
+);
+
 module.exports = router;

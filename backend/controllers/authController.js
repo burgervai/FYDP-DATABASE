@@ -3,6 +3,7 @@ const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const { Pool } = require('pg');
 require('dotenv').config();
+const { logAction } = require('../utils/auditLogger');
 
 const pool = new Pool({
   connectionString: process.env.NEON_DATABASE || process.env.DATABASE_URL || process.env.DATABASE_URL_HOSPITAL1,
@@ -49,11 +50,13 @@ exports.register = async (req, res) => {
     }
     // Generate JWT
     const token = generateToken(userResult.rows[0]);
-    await logAction(email, 'register', 'success', ip, { role });
+    // Log with user ID instead of email
+    await logAction(userId, 'register', 'success', ip, { role, email });
     res.status(201).json({ token });
   } catch (err) {
     console.error(err);
-    await logAction(email, 'register_attempt', 'error', ip, { error: err.message });
+    // Log with user ID if available, otherwise email
+    await logAction(err.user_id || email, 'register_attempt', 'error', ip, { error: err.message });
     res.status(500).json({ error: 'Server error' });
   }
 };
