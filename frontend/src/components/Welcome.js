@@ -1,4 +1,5 @@
 import React from 'react';
+<<<<<<< HEAD
 import { Heart } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
@@ -39,6 +40,57 @@ const Welcome = ({ onUserTypeSelect }) => {
     </div>
   );
 };
+=======
+import { Box, Button, Container, Typography } from '@mui/material';
+import { useNavigate } from 'react-router-dom';
+import MedicalServicesIcon from '@mui/icons-material/MedicalServices';
+import PersonIcon from '@mui/icons-material/Person';
+
+const Welcome = () => {
+  const navigate = useNavigate();
+
+  return (
+    <Box
+      sx={{
+        minHeight: '100vh',
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        justifyContent: 'center',
+        backgroundColor: '#aef9e4', // Greenish white background
+        color: '#2e7d32', // Dark green text
+        textAlign: 'center',
+        p: 3,
+      }}
+    >
+      <Container maxWidth="sm">
+        <Box sx={{ mb: 6 }}>
+          <Box
+            sx={{
+              display: 'flex',
+              justifyContent: 'center',
+              gap: 4,
+              mb: 4,
+            }}
+          >
+            <MedicalServicesIcon sx={{ fontSize: 80, color: '#4CAF50' }} />
+            <PersonIcon sx={{ fontSize: 80, color: '#4CAF50' }} />
+          </Box>
+          
+          <Typography variant="h4" component="h1" gutterBottom>
+            Welcome To
+          </Typography>
+          <Typography 
+            variant="h2" 
+            component="h2" 
+            sx={{ 
+              fontWeight: 'bold',
+              color: '#4CAF50',
+              mb: 2
+            }}
+          >
+            OFTEN
+>>>>>>> fcb428aeb8d77991150b80de81d392862bf3f7c8
           </Typography>
           <Typography variant="h6" sx={{ mb: 6, color: '#e0e0e0' }}>
             Your health Our Priority
